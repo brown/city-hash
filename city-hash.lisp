@@ -271,7 +271,6 @@ index START to END."
               (progn
                 (setf a (u64* (shift-mix (u64* a +k1+)) +k1+))
                 (setf c (u64+ (u64* b +k1+) (hash-length-0-to-16 octets start length)))
-                ;; (setf d (rotate-right-64 (u64+ a (if (>= length 8) (load-64 octets start) c)) 32)))
                 (setf d (shift-mix (u64+ a (if (>= length 8) (load-64 octets start) c)))))
               (progn
                 (setf c (hash-length-16 (u64+ (load-64 octets (+ start length -8)) +k1+) a))
