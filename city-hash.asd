@@ -19,6 +19,7 @@
   ;; XXXX: Base is a package defined in the protobuf repository.  Remove the
   ;; dependency or break base out of protobuf.
   :depends-on (#:base)
+  :in-order-to ((test-op (test-op :city-hash-test)))
   :components
   ((:file "package")
    (:file "city-hash" :depends-on ("package"))))
