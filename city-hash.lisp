@@ -42,10 +42,15 @@
 
 (declaim (inline rotate-right-64))
 
+#-sbcl
 (defun rotate-right-64 (x shift)
   (declare (type uint64 x)
            (type (integer 7 53) shift))
   (logior (ash x (- shift)) (mod-2^64 (ash x (- 64 shift)))))
+
+#+sbcl
+(defun rotate-right-64 (x shift)
+  (sb-rotate-byte:rotate-byte (- shift) (byte 64 0) x))
 
 (declaim (inline shift-mix))
 
@@ -160,14 +165,14 @@
                                  (u64* (u64+ wf vs) +k0+)))))
         (u64* (shift-mix (u64+ (u64* r +k0+) vs)) +k2+)))))
 
-(declaim (ftype (function (octet-vector &optional vector-index vector-index)
+(declaim (ftype (function (octet-vector &key (start vector-index) (end vector-index))
                           (values uint64 &optional))
                 city-hash-64))
 
-(defun city-hash-64 (octets &optional (start 0) (end (length octets)))
-  "Hashes OCTETS, a vector of (UNSIGNED-BYTE 8) and returns the 64-bit hash
-value as an (UNSIGNED-BYTE 64).  Optionally, only hash OCTETS from index
-START to END."
+(defun city-hash-64 (octets &key (start 0) (end (length octets)))
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8) from index START to index END and
+returns the 64-bit hash value as an (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults
+to the length of OCTETS."
   (declare (type octet-vector octets)
            (type vector-index start end))
   (let ((length (- end start)))
@@ -219,42 +224,42 @@ START to END."
                  (hash-length-16 (u64+ (u64+ (hash-length-16 vf wf) (u64* (shift-mix y) +k1+)) z)
                                  (u64+ (hash-length-16 vs ws) x)))))))))
 
-(declaim (ftype (function (octet-vector uint64 uint64 &optional vector-index vector-index)
+(declaim (ftype (function (octet-vector uint64 uint64 &key (start vector-index) (end vector-index))
                           (values uint64 &optional))
                 city-hash-64-with-seeds))
 
-(defun city-hash-64-with-seeds (octets seed0 seed1 &optional (start 0) (end (length octets)))
-  "Hashes OCTETS, a vector of (UNSIGNED-BYTE 8), together with seeds SEED0
-and SEED1, each of type (UNSIGNED-BYTE 64), and returns the 64-bit hash
-value as an (UNSIGNED-BYTE 64).  Optionally, only hash OCTETS from index
-START to END."
+(defun city-hash-64-with-seeds (octets seed0 seed1 &key (start 0) (end (length octets)))
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END
+together with seeds SEED0 and SEED1, each of type (UNSIGNED-BYTE 64), and returns the 64-bit hash
+value as an (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the length of
+OCTETS."
   (declare (type octet-vector octets)
            (type uint64 seed0 seed1)
            (type vector-index start end))
   (hash-length-16 (u64- (city-hash-64 octets start end) seed0) seed1))
 
-(declaim (ftype (function (octet-vector uint64 &optional vector-index vector-index)
+(declaim (ftype (function (octet-vector uint64 &key (start vector-index) (end vector-index))
                           (values uint64 &optional))
                 city-hash-64-with-seed))
 
-(defun city-hash-64-with-seed (octets seed &optional (start 0) (end (length octets)))
-  "Hashes OCTETS, a vector of (UNSIGNED-BYTE 8), together with SEED of
-type (UNSIGNED-BYTE 64), and returns the 64-bit hash value as an
-(UNSIGNED-BYTE 64).  Optionally, only hash OCTETS from index START to END."
+(defun city-hash-64-with-seed (octets seed &key (start 0) (end (length octets)))
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END
+together with SEED of type (UNSIGNED-BYTE 64), and returns the 64-bit hash value as an
+(UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the length of OCTETS."
   (declare (type octet-vector octets)
            (type uint64 seed)
            (type vector-index start end))
   (city-hash-64-with-seeds octets +k2+ seed start end))
 
-(declaim (ftype (function (octet-vector uint64 uint64 &optional vector-index vector-index)
+(declaim (ftype (function (octet-vector uint64 uint64 &key (start vector-index) (end vector-index))
                           (values uint64 uint64 &optional))
                 city-hash-128-with-seed))
 
-(defun city-hash-128-with-seed (octets x y &optional (start 0) (end (length octets)))
-  "Hashes OCTETS, a vector of (UNSIGNED-BYTE 8), together with seeds X and
-Y, each of type (UNSIGNED-BYTE 64), and returns the 128-bit hash value as
-two values of type (UNSIGNED-BYTE 64).  Optionally, only hash OCTETS from
-index START to END."
+(defun city-hash-128-with-seed (octets x y &key (start 0) (end (length octets)))
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END
+together with seeds X and Y, each of type (UNSIGNED-BYTE 64), and returns the 128-bit hash value as
+two values of type (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the length of
+OCTETS."
   (declare (type octet-vector octets)
            (type uint64 x y)
            (type vector-index start end))
@@ -362,14 +367,14 @@ index START to END."
           (values (u64+ (hash-length-16 (u64+ x vs) ws) y)
                   (hash-length-16 (u64+ x ws) (u64+ y vs)))))))
 
-(declaim (ftype (function (octet-vector &optional vector-index vector-index)
+(declaim (ftype (function (octet-vector &key (start vector-index) (end vector-index))
                           (values uint64 uint64 &optional))
                 city-hash-128))
 
-(defun city-hash-128 (octets &optional (start 0) (end (length octets)))
-  "Hashes OCTETS, a vector of (UNSIGNED-BYTE 8) and returns the 128-bit hash
-value as two values of type (UNSIGNED-BYTE 64).  Optionally, only hash
-OCTETS from index START to END."
+(defun city-hash-128 (octets &key (start 0) (end (length octets)))
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END and
+returns the 128-bit hash value as two values of type (UNSIGNED-BYTE 64).  START defaults to zero,
+while END defaults to the length of OCTETS."
   (declare (type octet-vector octets)
            (type vector-index start end))
   (let ((length (- end start)))

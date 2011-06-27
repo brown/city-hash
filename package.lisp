@@ -1,7 +1,7 @@
 
 ;;;; package.lisp
 
-(in-package #:common-lisp)
+(in-package #:common-lisp-user)
 
 (defpackage #:city-hash
   (:documentation "An implementation of the CityHash family of hash functions.")

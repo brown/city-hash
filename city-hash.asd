@@ -1,7 +1,7 @@
 
 ;;;; city-hash.asd
 
-(in-package #:common-lisp)
+(in-package #:common-lisp-user)
 
 (defpackage #:city-hash-system
   (:documentation "System definition for the CITY-HASH package.")
@@ -18,7 +18,7 @@
   :license "See the copyright messages in individual files."
   ;; XXXX: Base is a package defined in the protobuf repository.  Remove the
   ;; dependency or break base out of protobuf.
-  :depends-on (#:base)
+  :depends-on (#:base #+sbcl #:sb-rotate-byte)
   :in-order-to ((test-op (test-op :city-hash-test)))
   :components
   ((:file "package")
