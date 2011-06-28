@@ -165,7 +165,7 @@
                                  (u64* (u64+ wf vs) +k0+)))))
         (u64* (shift-mix (u64+ (u64* r +k0+) vs)) +k2+)))))
 
-(declaim (ftype (function (octet-vector &key (start vector-index) (end vector-index))
+(declaim (ftype (function (octet-vector &key (:start vector-index) (:end vector-index))
                           (values uint64 &optional))
                 city-hash-64))
 
@@ -224,7 +224,8 @@ to the length of OCTETS."
                  (hash-length-16 (u64+ (u64+ (hash-length-16 vf wf) (u64* (shift-mix y) +k1+)) z)
                                  (u64+ (hash-length-16 vs ws) x)))))))))
 
-(declaim (ftype (function (octet-vector uint64 uint64 &key (start vector-index) (end vector-index))
+(declaim (ftype (function (octet-vector uint64 uint64
+                           &key (:start vector-index) (:end vector-index))
                           (values uint64 &optional))
                 city-hash-64-with-seeds))
 
@@ -236,9 +237,9 @@ OCTETS."
   (declare (type octet-vector octets)
            (type uint64 seed0 seed1)
            (type vector-index start end))
-  (hash-length-16 (u64- (city-hash-64 octets start end) seed0) seed1))
+  (hash-length-16 (u64- (city-hash-64 octets :start start :end end) seed0) seed1))
 
-(declaim (ftype (function (octet-vector uint64 &key (start vector-index) (end vector-index))
+(declaim (ftype (function (octet-vector uint64 &key (:start vector-index) (:end vector-index))
                           (values uint64 &optional))
                 city-hash-64-with-seed))
 
@@ -249,9 +250,10 @@ together with SEED of type (UNSIGNED-BYTE 64), and returns the 64-bit hash value
   (declare (type octet-vector octets)
            (type uint64 seed)
            (type vector-index start end))
-  (city-hash-64-with-seeds octets +k2+ seed start end))
+  (city-hash-64-with-seeds octets +k2+ seed :start start :end end))
 
-(declaim (ftype (function (octet-vector uint64 uint64 &key (start vector-index) (end vector-index))
+(declaim (ftype (function (octet-vector uint64 uint64
+                           &key (:start vector-index) (:end vector-index))
                           (values uint64 uint64 &optional))
                 city-hash-128-with-seed))
 
@@ -367,7 +369,7 @@ OCTETS."
           (values (u64+ (hash-length-16 (u64+ x vs) ws) y)
                   (hash-length-16 (u64+ x ws) (u64+ y vs)))))))
 
-(declaim (ftype (function (octet-vector &key (start vector-index) (end vector-index))
+(declaim (ftype (function (octet-vector &key (:start vector-index) (:end vector-index))
                           (values uint64 uint64 &optional))
                 city-hash-128))
 
@@ -383,14 +385,14 @@ while END defaults to the length of OCTETS."
                (city-hash-128-with-seed octets
                                         (logxor (load-64 octets start) +k3+)
                                         (load-64 octets (+ start 8))
-                                        (+ start 16)
-                                        end))
+                                        :start (+ start 16)
+                                        :end end))
               ((>= length 8)
                (city-hash-128-with-seed +empty-octet-vector+
                                         (logxor (load-64 octets start) (u64* length +k0+))
                                         (logxor (load-64 octets (- end 8)) +k1+)
-                                        0
-                                        0))
+                                        :start 0
+                                        :end 0))
               (t
-               (city-hash-128-with-seed octets +k0+ +k1+ start end)))
+               (city-hash-128-with-seed octets +k0+ +k1+ :start start :end end)))
       (values hf hs))))
