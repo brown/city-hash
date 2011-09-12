@@ -25,9 +25,7 @@
 
 (defpackage #:city-hash-test
   (:documentation "Test code in the CITY-HASH package.")
-  ;; XXXX: Base is a package defined in the protobuf repository.  Remove the
-  ;; dependency or break base out of protobuf.
-  (:use #:common-lisp #:base #:hu.dwim.stefil #:city-hash)
+  (:use #:common-lisp #:com.google.base #:hu.dwim.stefil #:city-hash)
   (:export #:test-city-hash))
 
 (in-package #:city-hash-test)

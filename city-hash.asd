@@ -16,9 +16,7 @@
   :version "1.0.2"
   :author "Robert Brown"
   :license "See the copyright messages in individual files."
-  ;; XXXX: Base is a package defined in the protobuf repository.  Remove the
-  ;; dependency or break base out of protobuf.
-  :depends-on (#:base #+sbcl #:sb-rotate-byte)
+  :depends-on (#:com.google.base #+sbcl #:sb-rotate-byte)
   :in-order-to ((test-op (test-op :city-hash-test)))
   :components
   ((:file "package")
