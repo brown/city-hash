@@ -13,9 +13,9 @@
   :name "City Hash"
   :description "CityHash hash functions"
   :long-description "A Common Lisp implementation of Google's CityHash family of hash functions."
-  :version "1.0.2"
+  :version "1.0.3"
   :author "Robert Brown"
-  :license "See the copyright messages in individual files."
+  :license "MIT License.  See the copyright messages in individual files."
   :depends-on (#:com.google.base #+sbcl #:sb-rotate-byte)
   :in-order-to ((test-op (test-op :city-hash-test)))
   :components
