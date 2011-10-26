@@ -42,15 +42,13 @@
 
 (declaim (inline rotate-right-64))
 
-#-sbcl
 (defun rotate-right-64 (x shift)
   (declare (type uint64 x)
            (type (integer 7 53) shift))
+  #+(and sbcl (not x86-64))
+  (sb-rotate-byte:rotate-byte (- shift) (byte 64 0) x)
+  #-(and sbcl (not x86-64))
   (logior (ash x (- shift)) (mod-2^64 (ash x (- 64 shift)))))
-
-#+sbcl
-(defun rotate-right-64 (x shift)
-  (sb-rotate-byte:rotate-byte (- shift) (byte 64 0) x))
 
 (declaim (inline shift-mix))
 
