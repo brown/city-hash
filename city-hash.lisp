@@ -25,6 +25,7 @@
 (declaim #.*optimize-fast-unsafe*)
 
 ;; Random primes between 2^63 and 2^64.
+(defconst +k+ #x9ddfea08eb382d69)
 (defconst +k0+ #xc3a5c85c97cb3127)
 (defconst +k1+ #xb492b66fbe98f273)
 (defconst +k2+ #x9ae16a3b2f90404f)
@@ -60,10 +61,9 @@
 
 (defun hash-length-16 (u v)
   (declare (type uint64 u v))
-  (let* ((k #x9ddfea08eb382d69)
-         (a (shift-mix (u64* (logxor u v) k)))
-         (b (shift-mix (u64* (logxor v a) k))))
-    (u64* b k)))
+  (let* ((a (shift-mix (u64* (logxor u v) +k+)))
+         (b (shift-mix (u64* (logxor v a) +k+))))
+    (u64* b +k+)))
 
 (declaim (inline load-32))
 
@@ -182,25 +182,23 @@ to the length of OCTETS."
           ((<= length 64)
            (hash-length-33-to-64 octets start length))
           (t
-           ;; For strings over 64 bytes we hash the end first, and then as
-           ;; we loop we keep 56 bytes of state: x, y, z, vf, vs, wf, and ws.
-           (let ((x (load-64 octets start))
-                 (y (logxor (load-64 octets (- end 16)) +k1+))
-                 (z (logxor (load-64 octets (- end 56)) +k0+)))
+           ;; For strings over 64 bytes we hash the end first, and then as we loop we keep 56 bytes
+           ;; of state: x, y, z, vf, vs, wf, and ws.
+           (let ((x (load-64 octets (- end 40)))
+                 (y (u64+ (load-64 octets (- end 16)) (load-64 octets (- end 56))))
+                 (z (hash-length-16 (u64+ (load-64 octets (- end 48)) length)
+                                    (load-64 octets (- end 24)))))
              (multiple-value-bind (vf vs)
-                 (weak-hash-length-32-with-seeds octets (- end 64) length y)
+                 (weak-hash-length-32-with-seeds octets (- end 64) length z)
                (multiple-value-bind (wf ws)
-                   (weak-hash-length-32-with-seeds octets (- end 32) (u64* length +k1+) +k0+)
-                 (incf64 z (u64* (shift-mix vs) +k1+))
-                 (setf x (u64* (rotate-right-64 (u64+ z x) 39) +k1+))
-                 (setf y (u64* (rotate-right-64 y 33) +k1+))
-                 ;; Decrease length to the nearest multiple of 64, and
-                 ;; operate on 64-byte chunks.
+                   (weak-hash-length-32-with-seeds octets (- end 32) (u64+ y +k1+) x)
+                 (setf x (u64+ (u64* x +k1+) (load-64 octets start)))
+                 ;; Decrease length to the nearest multiple of 64, and operate on 64-byte chunks.
                  (setf length (logand (1- length) (lognot 63)))
                  (loop for index from start by 64
                        do (setf x (u64* (rotate-right-64
                                          (u64+ (u64+ (u64+ x y) vf)
-                                               (load-64 octets (+ index 16)))
+                                               (load-64 octets (+ index 8)))
                                          37)
                                         +k1+))
                           (setf y (u64* (rotate-right-64
@@ -208,14 +206,15 @@ to the length of OCTETS."
                                          42)
                                         +k1+))
                           (setf x (logxor x ws))
-                          (setf y (logxor y vf))
-                          (setf z (rotate-right-64 (logxor z wf) 33))
+                          (incf64 y (u64+ vf (load-64 octets (+ index 40))))
+                          (setf z (u64* (rotate-right-64 (u64+ z wf) 33) +k1+))
                           (setf (values vf vs)
                                 (weak-hash-length-32-with-seeds
                                  octets index (u64* vs +k1+) (u64+ x wf)))
                           (setf (values wf ws)
                                 (weak-hash-length-32-with-seeds
-                                 octets (+ index 32) (u64+ z ws) y))
+                                 octets (+ index 32) (u64+ z ws)
+                                 (u64+ y (load-64 octets (+ index 16)))))
                           (rotatef z x)
                           (decf length 64)
                        while (not (zerop length)))
@@ -308,7 +307,7 @@ OCTETS."
           (declare (type vector-index index))
           ;; This is the same inner loop as CityHash64(), manually unrolled.
           (loop do (setf x (u64* (rotate-right-64
-                                  (u64+ (u64+ (u64+ x y) vf) (load-64 octets (+ index 16)))
+                                  (u64+ (u64+ (u64+ x y) vf) (load-64 octets (+ index 8)))
                                   37)
                                  +k1+))
                    (setf y (u64* (rotate-right-64
@@ -316,16 +315,17 @@ OCTETS."
                                   42)
                                  +k1+))
                    (setf x (logxor x ws))
-                   (setf y (logxor y vf))
-                   (setf z (rotate-right-64 (logxor z wf) 33))
+                   (incf64 y (u64+ vf (load-64 octets (+ index 40))))
+                   (setf z (u64* (rotate-right-64 (u64+ z wf) 33) +k1+))
                    (setf (values vf vs)
                          (weak-hash-length-32-with-seeds octets index (u64* vs +k1+) (u64+ x wf)))
                    (setf (values wf ws)
-                         (weak-hash-length-32-with-seeds octets (+ index 32) (u64+ z ws) y))
+                         (weak-hash-length-32-with-seeds octets (+ index 32) (u64+ z ws)
+                                                         (u64+ y (load-64 octets (+ index 16)))))
                    (rotatef z x)
                    (incf index 64)
                    (setf x (u64* (rotate-right-64
-                                  (u64+ (u64+ (u64+ x y) vf) (load-64 octets (+ index 16)))
+                                  (u64+ (u64+ (u64+ x y) vf) (load-64 octets (+ index 8)))
                                   37)
                                  +k1+))
                    (setf y (u64* (rotate-right-64
@@ -333,37 +333,39 @@ OCTETS."
                                   42)
                                  +k1+))
                    (setf x (logxor x ws))
-                   (setf y (logxor y vf))
-                   (setf z (rotate-right-64 (logxor z wf) 33))
+                   (incf64 y (u64+ vf (load-64 octets (+ index 40))))
+                   (setf z (u64* (rotate-right-64 (u64+ z wf) 33) +k1+))
                    (setf (values vf vs)
                          (weak-hash-length-32-with-seeds octets index (u64* vs +k1+) (u64+ x wf)))
                    (setf (values wf ws)
-                         (weak-hash-length-32-with-seeds octets (+ index 32) (u64+ z ws) y))
+                         (weak-hash-length-32-with-seeds octets (+ index 32) (u64+ z ws)
+                                                         (u64+ y (load-64 octets (+ index 16)))))
                    (rotatef z x)
                    (incf index 64)
                    (decf length 128)
                 while (>= length 128))
-          (incf64 y (u64+ (u64* (rotate-right-64 wf 37) +k0+) z))
           (incf64 x (u64* (rotate-right-64 (u64+ vf z) 49) +k0+))
+          (incf64 z (u64* (rotate-right-64 wf 37) +k0+))
           ;; If 0 < length < 128, hash up to 4 chunks of 32 bytes each from
           ;; the end of octets.
           (loop with tail-done = 0
                 while (< tail-done length)
                 do (incf tail-done 32)
-                   (setf y (u64+ (u64* (rotate-right-64 (u64- y x) 42) +k0+) vs))
+                   (setf y (u64+ (u64* (rotate-right-64 (u64+ y x) 42) +k0+) vs))
                    (incf64 wf (load-64 octets (- (+ index length 16) tail-done)))
-                   (setf x (u64+ (u64* (rotate-right-64 x 49) +k0+) wf))
-                   (incf64 wf vf)
+                   (setf x (u64+ (u64* x +k0+) wf))
+                   (incf64 z (u64+ ws (load-64 octets (- (+ index length) tail-done))))
+                   (incf64 ws vf)
                    (setf (values vf vs)
                          (weak-hash-length-32-with-seeds octets
                                                          (- (+ index length) tail-done)
-                                                         vf
+                                                         (u64+ vf z)
                                                          vs)))
-          ;; At this point our 48 bytes of state should contain more than
-          ;; enough information for a strong 128-bit hash.  We use two
-          ;; different 48-byte-to-8-byte hashes to get a 16-byte final result.
+          ;; At this point our 56 bytes of state should contain more than enough information for a
+          ;; strong 128-bit hash.  We use two different 56-byte-to-8-byte hashes to get a 16-byte
+          ;; final result.
           (setf x (hash-length-16 x vf))
-          (setf y (hash-length-16 y wf))
+          (setf y (hash-length-16 (u64+ y z) wf))
           (values (u64+ (hash-length-16 (u64+ x vs) ws) y)
                   (hash-length-16 (u64+ x ws) (u64+ y vs)))))))
 
