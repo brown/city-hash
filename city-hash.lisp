@@ -46,6 +46,7 @@
 (defun rotate-right-64 (x shift)
   (declare (type uint64 x)
            (type (integer 7 53) shift))
+  ;; TODO(brown): Use SB-ROTATE-BYTE:ROTATE-BYTE on 64-bit hosts when it works.
   #+(and sbcl (not x86-64))
   (sb-rotate-byte:rotate-byte (- shift) (byte 64 0) x)
   #-(and sbcl (not x86-64))
@@ -159,8 +160,7 @@
       (incf64 a (load-64 octets (+ index length -16)))
       (let* ((wf (u64+ a z))
              (ws (u64+ (u64+ b (rotate-right-64 a 31)) c))
-             (r (shift-mix (u64+ (u64* (u64+ vf ws) +k2+)
-                                 (u64* (u64+ wf vs) +k0+)))))
+             (r (shift-mix (u64+ (u64* (u64+ vf ws) +k2+) (u64* (u64+ wf vs) +k0+)))))
         (u64* (shift-mix (u64+ (u64* r +k0+) vs)) +k2+)))))
 
 (declaim (ftype (function (octet-vector &key (:start vector-index) (:end vector-index))
@@ -168,9 +168,9 @@
                 city-hash-64))
 
 (defun city-hash-64 (octets &key (start 0) (end (length octets)))
-  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8) from index START to index END and
-returns the 64-bit hash value as an (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults
-to the length of OCTETS."
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8) from index START
+to index END and returns the 64-bit hash value as an (UNSIGNED-BYTE 64).  START
+defaults to zero, while END defaults to the length of OCTETS."
   (declare (type octet-vector octets)
            (type vector-index start end))
   (let ((length (- end start)))
@@ -227,10 +227,10 @@ to the length of OCTETS."
                 city-hash-64-with-seeds))
 
 (defun city-hash-64-with-seeds (octets seed0 seed1 &key (start 0) (end (length octets)))
-  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END
-together with seeds SEED0 and SEED1, each of type (UNSIGNED-BYTE 64), and returns the 64-bit hash
-value as an (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the length of
-OCTETS."
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index
+START to index END together with seeds SEED0 and SEED1, each of type
+(UNSIGNED-BYTE 64), and returns the 64-bit hash value as an (UNSIGNED-BYTE 64).
+START defaults to zero, while END defaults to the length of OCTETS."
   (declare (type octet-vector octets)
            (type uint64 seed0 seed1)
            (type vector-index start end))
@@ -241,9 +241,10 @@ OCTETS."
                 city-hash-64-with-seed))
 
 (defun city-hash-64-with-seed (octets seed &key (start 0) (end (length octets)))
-  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END
-together with SEED of type (UNSIGNED-BYTE 64), and returns the 64-bit hash value as an
-(UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the length of OCTETS."
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index
+START to index END together with SEED of type (UNSIGNED-BYTE 64), and returns
+the 64-bit hash value as an (UNSIGNED-BYTE 64).  START defaults to zero, while
+END defaults to the length of OCTETS."
   (declare (type octet-vector octets)
            (type uint64 seed)
            (type vector-index start end))
@@ -255,10 +256,10 @@ together with SEED of type (UNSIGNED-BYTE 64), and returns the 64-bit hash value
                 city-hash-128-with-seed))
 
 (defun city-hash-128-with-seed (octets x y &key (start 0) (end (length octets)))
-  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END
-together with seeds X and Y, each of type (UNSIGNED-BYTE 64), and returns the 128-bit hash value as
-two values of type (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the length of
-OCTETS."
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index
+START to index END together with seeds X and Y, each of type (UNSIGNED-BYTE 64),
+and returns the 128-bit hash value as two values of type (UNSIGNED-BYTE 64).
+START defaults to zero, while END defaults to the length of OCTETS."
   (declare (type octet-vector octets)
            (type uint64 x y)
            (type vector-index start end))
@@ -296,8 +297,8 @@ OCTETS."
           (setf a (hash-length-16 a c))
           (setf b (hash-length-16 d b))
           (values (logxor a b) (hash-length-16 b a)))
-        ;; We expect length >= 128 to be the common case.  Keep 56 bytes of
-        ;; state: x, y, z, vf, vs, wf, ws.
+        ;; We expect length >= 128 to be the common case.  Keep 56 bytes of state: x, y, z, vf, vs,
+        ;; wf, ws.
         (let* ((z (u64* length +k1+))
                (vf (u64+ (u64* (rotate-right-64 (logxor y +k1+) 49) +k1+) (load-64 octets start)))
                (vs (u64+ (u64* (rotate-right-64 vf 42) +k1+) (load-64 octets (+ start 8))))
@@ -346,8 +347,7 @@ OCTETS."
                 while (>= length 128))
           (incf64 x (u64* (rotate-right-64 (u64+ vf z) 49) +k0+))
           (incf64 z (u64* (rotate-right-64 wf 37) +k0+))
-          ;; If 0 < length < 128, hash up to 4 chunks of 32 bytes each from
-          ;; the end of octets.
+          ;; If 0 < length < 128, hash up to 4 chunks of 32 bytes each from the end of octets.
           (loop with tail-done = 0
                 while (< tail-done length)
                 do (incf tail-done 32)
@@ -374,9 +374,10 @@ OCTETS."
                 city-hash-128))
 
 (defun city-hash-128 (octets &key (start 0) (end (length octets)))
-  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index START to index END and
-returns the 128-bit hash value as two values of type (UNSIGNED-BYTE 64).  START defaults to zero,
-while END defaults to the length of OCTETS."
+  "Hashes the contents of OCTETS, a vector of (UNSIGNED-BYTE 8), from index
+START to index END and returns the 128-bit hash value as two values of
+type (UNSIGNED-BYTE 64).  START defaults to zero, while END defaults to the
+length of OCTETS."
   (declare (type octet-vector octets)
            (type vector-index start end))
   (let ((length (- end start)))
