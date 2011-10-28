@@ -1,25 +1,25 @@
+;;;; Copyright 2011 Google, Inc.
+
+;;;; Permission is hereby granted, free of charge, to any person obtaining a copy
+;;;; of this software and associated documentation files (the "Software"), to deal
+;;;; in the Software without restriction, including without limitation the rights
+;;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+;;;; copies of the Software, and to permit persons to whom the Software is
+;;;; furnished to do so, subject to the following conditions:
+
+;;;; The above copyright notice and this permission notice shall be included in
+;;;; all copies or substantial portions of the Software.
+
+;;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;;;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+;;;; THE SOFTWARE.
+
 ;;;; CityHash version 1, by Geoff Pike and Jyrki Alakuijala.
 ;;;; Translated into Common Lisp by Robert Brown (robert.brown@gmail.com).
-
-;;; Copyright 2011 Google, Inc.
-
-;;; Permission is hereby granted, free of charge, to any person obtaining a copy
-;;; of this software and associated documentation files (the "Software"), to deal
-;;; in the Software without restriction, including without limitation the rights
-;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-;;; copies of the Software, and to permit persons to whom the Software is
-;;; furnished to do so, subject to the following conditions:
-
-;;; The above copyright notice and this permission notice shall be included in
-;;; all copies or substantial portions of the Software.
-
-;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-;;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-;;; THE SOFTWARE.
 
 (in-package #:city-hash)
 (declaim #.*optimize-fast-unsafe*)
@@ -250,6 +250,46 @@ END defaults to the length of OCTETS."
            (type vector-index start end))
   (city-hash-64-with-seeds octets +k2+ seed :start start :end end))
 
+(declaim (ftype (function (octet-vector uint64 uint64 vector-index vector-index)
+                          (values uint64 uint64 &optional))
+                city-murmur)
+         (inline city-murmur))
+
+(defun city-murmur (octets x y start length)
+  "Returns a 128-bit hash code.  Based on City and Murmur128."
+  (declare (type octet-vector octets)
+           (type uint64 x y)
+           (type vector-index start length))
+  (let ((a x)
+        (b y)
+        (c 0)
+        (d 0)
+        (len (- length 16)))
+    (declare (type uint64 a b c d))
+    (if (<= len 0)                      ; length <= 16
+        (progn
+          (setf a (u64* (shift-mix (u64* a +k1+)) +k1+))
+          (setf c (u64+ (u64* b +k1+) (hash-length-0-to-16 octets start length)))
+          (setf d (shift-mix (u64+ a (if (>= length 8) (load-64 octets start) c)))))
+        (progn                          ; length > 16
+          (setf c (hash-length-16 (u64+ (load-64 octets (+ start length -8)) +k1+) a))
+          (setf d (hash-length-16 (u64+ b length)
+                                  (u64+ c (load-64 octets (+ start length -16)))))
+          (incf64 a d)
+          (loop for index of-type vector-index upfrom start by 16
+                do (setf a (logxor a (u64* (shift-mix (u64* (load-64 octets index) +k1+)) +k1+)))
+                   (setf a (u64* a +k1+))
+                   (setf b (logxor b a))
+                   (setf c (logxor c (u64* (shift-mix (u64* (load-64 octets (+ index 8)) +k1+))
+                                           +k1+)))
+                   (setf c (u64* c +k1+))
+                   (setf d (logxor d c))
+                   (decf len 16)
+                while (> len 0))))
+    (setf a (hash-length-16 a c))
+    (setf b (hash-length-16 d b))
+    (values (logxor a b) (hash-length-16 b a))))
+
 (declaim (ftype (function (octet-vector uint64 uint64
                            &key (:start vector-index) (:end vector-index))
                           (values uint64 uint64 &optional))
@@ -266,37 +306,7 @@ START defaults to zero, while END defaults to the length of OCTETS."
   (let ((length (- end start)))
     (declare (type vector-index length))
     (if (< length 128)
-        (let ((a x)
-              (b y)
-              (c 0)
-              (d 0)
-              (len (- length 16)))
-          (declare (type uint64 a b c d))
-          (if (<= len 0)                      ; length <= 16
-              (progn
-                (setf a (u64* (shift-mix (u64* a +k1+)) +k1+))
-                (setf c (u64+ (u64* b +k1+) (hash-length-0-to-16 octets start length)))
-                (setf d (shift-mix (u64+ a (if (>= length 8) (load-64 octets start) c)))))
-              (progn
-                (setf c (hash-length-16 (u64+ (load-64 octets (+ start length -8)) +k1+) a))
-                (setf d (hash-length-16 (u64+ b length)
-                                        (u64+ c (load-64 octets (+ start length -16)))))
-                (incf64 a d)
-                (loop for index of-type vector-index upfrom start by 16
-                      do (setf a (logxor a (u64* (shift-mix (u64* (load-64 octets index) +k1+))
-                                                 +k1+)))
-                         (setf a (u64* a +k1+))
-                         (setf b (logxor b a))
-                         (setf c (logxor c (u64* (shift-mix
-                                                  (u64* (load-64 octets (+ index 8)) +k1+))
-                                                 +k1+)))
-                         (setf c (u64* c +k1+))
-                         (setf d (logxor d c))
-                         (decf len 16)
-                      while (> len 0))))
-          (setf a (hash-length-16 a c))
-          (setf b (hash-length-16 d b))
-          (values (logxor a b) (hash-length-16 b a)))
+        (city-murmur octets x y start length)
         ;; We expect length >= 128 to be the common case.  Keep 56 bytes of state: x, y, z, vf, vs,
         ;; wf, ws.
         (let* ((z (u64* length +k1+))

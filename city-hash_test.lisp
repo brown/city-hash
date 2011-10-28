@@ -1,25 +1,25 @@
+;;;; Copyright 2011 Google, Inc.
+
+;;;; Permission is hereby granted, free of charge, to any person obtaining a copy
+;;;; of this software and associated documentation files (the "Software"), to deal
+;;;; in the Software without restriction, including without limitation the rights
+;;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+;;;; copies of the Software, and to permit persons to whom the Software is
+;;;; furnished to do so, subject to the following conditions:
+
+;;;; The above copyright notice and this permission notice shall be included in
+;;;; all copies or substantial portions of the Software.
+
+;;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;;;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+;;;; THE SOFTWARE.
+
 ;;;; CityHash unit tests
 ;;;; Translated into Common Lisp by Robert Brown (robert.brown@gmail.com).
-
-;;; Copyright 2011 Google, Inc.
-
-;;; Permission is hereby granted, free of charge, to any person obtaining a copy
-;;; of this software and associated documentation files (the "Software"), to deal
-;;; in the Software without restriction, including without limitation the rights
-;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-;;; copies of the Software, and to permit persons to whom the Software is
-;;; furnished to do so, subject to the following conditions:
-
-;;; The above copyright notice and this permission notice shall be included in
-;;; all copies or substantial portions of the Software.
-
-;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-;;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-;;; THE SOFTWARE.
 
 (in-package #:common-lisp-user)
 
@@ -1243,7 +1243,7 @@
      #x36db7617b765f6e2 #x8df41c03c514a9dc #x6707cc39a809bb74
      #x3f27d7bb79e31984 #xa39dc6ac6cb0b0a8 #x33fc6ffd1ffb8676 #x36db7617b765f6e2)))
 
-(defun make-random-data ()
+(defun make-pseudo-random-data ()
   (let ((data (make-array +data-size+ :element-type '(unsigned-byte 8)))
         (a 9)
         (b 777))
@@ -1266,7 +1266,7 @@
       (is (= (nth 6 golden) vs)))))
 
 (deftest city-hash ()
-  (let ((data (make-random-data))
+  (let ((data (make-pseudo-random-data))
         (last (1- (length +golden+))))
     (loop for i from 0 below last
           for golden in +golden+

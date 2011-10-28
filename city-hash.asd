@@ -14,7 +14,7 @@
   :description "CityHash hash functions"
   :long-description "A Common Lisp implementation of Google's CityHash family of hash functions.
 The Lisp algorithm is identical to that of Google's open source C++ code, release 1.0.3."
-  :version "1.4"
+  :version "1.5"
   :author "Robert Brown"
   :license "MIT License.  See the copyright messages in individual files."
   :depends-on (com.google.base #+sbcl sb-rotate-byte)
