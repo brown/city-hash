@@ -46,10 +46,9 @@
 (defun rotate-right-64 (x shift)
   (declare (type uint64 x)
            (type (integer 7 53) shift))
-  ;; TODO(brown): Use SB-ROTATE-BYTE:ROTATE-BYTE on 64-bit hosts when it works.
-  #+(and sbcl (not x86-64))
+  #+sbcl
   (sb-rotate-byte:rotate-byte (- shift) (byte 64 0) x)
-  #-(and sbcl (not x86-64))
+  #-sbcl
   (logior (ash x (- shift)) (mod-2^64 (ash x (- 64 shift)))))
 
 (declaim (inline shift-mix))
