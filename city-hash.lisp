@@ -22,7 +22,6 @@
 ;;;; Translated into Common Lisp by Robert Brown (robert.brown@gmail.com).
 
 (in-package #:city-hash)
-(declaim #.*optimize-fast-unsafe*)
 
 ;; Random primes between 2^63 and 2^64.
 (defconst +k+ #x9ddfea08eb382d69)

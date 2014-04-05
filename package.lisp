@@ -1,6 +1,4 @@
 
-;;;; package.lisp
-
 (in-package #:common-lisp-user)
 
 (defpackage #:city-hash

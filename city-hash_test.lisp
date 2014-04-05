@@ -29,7 +29,6 @@
   (:export #:test-city-hash))
 
 (in-package #:city-hash-test)
-(declaim #.*optimize-default*)
 
 (defsuite (test-city-hash :in root-suite) ()
   (run-child-tests))
