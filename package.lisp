@@ -7,7 +7,11 @@
   (:import-from #:nibbles
                 nibbles:ub32ref/le
                 nibbles:ub64ref/le)
-  (:export #:city-hash-64
+  (:import-from #:swap-bytes
+                swap-bytes:swap-bytes-32
+                swap-bytes:swap-bytes-64)
+  (:export #:city-hash-32
+           #:city-hash-64
            #:city-hash-64-with-seed
            #:city-hash-64-with-seeds
            #:city-hash-128
