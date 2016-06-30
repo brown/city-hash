@@ -1,9 +1,0 @@
-
-Google's CityHash family of hash functions implemented in Common Lisp.
-
-
-For more information
-====================
-
-https://github.com/google/cityhash
-cityhash-discuss@googlegroups.com
